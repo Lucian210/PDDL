@@ -1,0 +1,219 @@
+\documentclass[a4paper,12pt]{report}
+\usepackage{algorithmic}
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\usepackage[margin=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{listings} 
+\usepackage{graphicx} 
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{verbatim}
+%\usepackage{mdframed}
+
+\newcommand{\currentdata}{14 February 2015}
+\newtheorem{example}{Example}
+
+\begin{document}
+\vspace{-5cm}
+\begin{center}
+Department of Computer Science\\
+Technical University of Cluj-Napoca\\
+\includegraphics[width=10cm]{fig/footer}
+\end{center}
+\vspace{1cm}
+%\maketitle
+\begin{center}
+\begin{Large}
+ \textbf{Artificial Intelligence}\\
+\end{Large}
+\textit{Laboratory activity}\\
+\vspace{3cm}
+Name: Scutaru Lucian\\
+Group: 30235\\
+Email: lucianscutaru00@gmail.com\\
+\vspace{12cm}
+Teaching Assistant: Adrian Groza\\
+Adrian.Groza@cs.utcluj.ro\\
+\vspace{1cm}
+\includegraphics[width=10cm]{fig/footer}
+\end{center}
+
+\tableofcontents
+
+\input{policy}
+
+%\chapter{Laboratory works}
+
+\chapter{A1: Introducere}
+
+Am realizat doua domenii diferite cu ajutorul PDDL impreuna cu cate 4 probleme diferite pe care acesta le rezolva. Primul domeniu realizat se numeste Color Pipes si descrie regulile unui joc logic, in care utilizatorul trebuie sa conecteze punctele de aceeasi culoare, fara a intersecta liniile.\\
+Cel de-al 2-lea domeniu mai complex descrie tot regulile unui joc numit Allout, in care scopul jucatorului este de a ajunge la stare in care tote luminile sunt stinse. Apasand pe ficeare din cele 25 de lumini asezate intr-o matrice, starea acestora se schimba(daca este deschis, becul se stinge), de asemenea luminile din jurul luminii apasate isi modifica starea.
+
+\chapter{A2: Probleme si solutii}
+\begin{Large}
+ \textbf{       1. Color Pipes}\\
+\end{Large}
+Conecteaza punctele de aceeasi culoare pentru a trece la nivelul urmator. Tevile nu se pot intercala asa ca va trebui gasita o solutie astfel incat la final toate punctele de aceeasi culoare sunt conectate.\\
+
+\includegraphics[width=150mm,scale=0.5]{pipes.png}\\
+\begin{Large}
+ \textbf{Rezolvare}\\
+\end{Large}
+In primul rand, in faza de dezvoltare a domeniului, ne definim predicatele de care avem nevoie. Cate un predicat pentru fiecare culoare diferita din joc, descris de locatie(rand si coloana). Consideram ca jocul se desfasoara pe o matrice patratica, deci ca si predicate vom avea nevoie si de coloanele si randurile adiecente celor curente. Astfel le luam ca si predicate.\\
+In continuare, in cadrul domeniului descriem actiunile posibile pentru fiecare pipe(toate culorile). Pentru fiecare actiune ne luam ca si parametrii randul si coloana curenta, si in functie de caz randul sau coloana din partea de sus, jos, stanga sau dreapta a randului ci soloanei actuale. Ca si preconditii este suficient sa ne asiguram ca pipe-ul are culoarea pentru care descriem actiunea si in functie de miscare implementata, urmatorul rand/coloana sa fie descris.\\
+Pentru partea de problema, luam ca si obiecte toate randurile sau coloanele din joc, si initializam jocul astfel. Descriem next-row si next-collumn pentru fiecare din randurile/coloanele din joc (avem nevoie doar de next pentru ca cu acesta putem lua si previous inversand in domain variabilele). Dupa care tot in initializarea jocului descriem punctele de inceput pentru fiecare culoare si in goal punem punctele la care fiecare trebuie conectate.\\
+\\
+
+\begin{Large}
+ \textbf{2. Allout}\\
+\end{Large}
+Turn all the lights out, if you can!
+Changing a light also changes the lights next to it.
+Scopul jocului este ca toate luminile asezate initial intr-un grid de 5X5 sa fie stinse. Regulile jocului sunt simple. Cand apesi pe o lumina aceasta isi schimba starea(inchis-deschis) dar de asemenea si cele din jurul ei(axa X si Y) isi schimba starea.
+
+\includegraphics[width=150mm,scale=0.5]{out.png}\\
+\begin{Large}
+ \textbf{Rezolvare}\\
+\end{Large}
+In faza de dezvoltare a domeniului ne definim predicatele de care avem nevoie. In cazul de fata pentru rezolvarea problemei avem nevoie de un predicat pentru a descrie pozitia unei lumini(deschise sau nu), pozitia luminilor de la marginea gridului(pentru care regulile se modifica usor deoarece de exemplu pentru o lumina din coltul din dreapta sus, in cazul in care este pornita, numai lumina din stanga si cea de jos isi vor modifica starea. De asemenea, la fel ca si mai sus, luam ca predicate si randurile si coloanele adiacente.\\
+In cadrul domeniului in continuare ne descriem actiunile. Deoarece exista multe cazuri de exceptie de la regula generala avem multe actiuni care sa trateza fiecare caz. Pentru luminile care nu se afla la marginea gridului implementam actiunea de pornire si oprire normala, dupa regula principala a jocului(se modifica si luminile din jurul lor), dar pentru luminile din margini tratam fiecare caz ca atare.\\
+La partea de descriere a problemelor, ca si obiecte luam fiecare rand si coloana a jocului, descriem randurile si coloanele succesoare pentru fiecare dintre acestea, dupa care in initializarea jocului setam marginile gridului si punem coordonatele fiecarui punct de frontiera. Tot in initializare descriem ce lumini sunt pornite in momentul in care incepe jocul si in goal punem ca luminile de pe fiecare coloana si rand sa nu fie pornite.
+\chapter{A3: Implementare}
+
+%\input{mycode}
+\begin{Large}
+ \textbf{Color Pipes}\\
+\end{Large}\\
+
+ (:predicates\\
+   (red ?r ?c)\\
+   (green ?r ?c)\\
+   (blue ?r ?c)\\
+   (yellow ?r ?c)\\
+   (pink ?r ?c)\\
+   (next-r ?r ?r)\\
+   (next-c ?c ?c)\\
+  )\\
+  Odata descrise predicatele trecem la implementare actiuilor. Fiecare culoare are ca si actiune move right/left/up/down. In continuare ca si exemplu am adaugat toate actiunile pe care pipe-ul de culoare roz le poate face.\\
+
+(:action pink-up\\
+    :parameters (?r ?c ?prev-r)\\
+    :precondition (and (pink ?r ?c)\\
+    			       (next-r ?prev-r ?r)\\
+    			       (not (red ?prev-r ?c))\\
+                       (not (green ?prev-r ?c))\\
+                       (not (blue ?prev-r ?c))\\
+                       (not (yellow ?prev-r ?c))\\
+                )\\
+    :effect (pink ?prev-r ?c)\\
+  )\\
+
+  (:action pink-down\\
+    :parameters (?r ?c ?next-r)\\
+    :precondition (and (pink ?r ?c)\\
+    			       (next-r ?r ?next-r)\\
+    			       (not (red ?next-r ?c))\\
+                       (not (green ?next-r ?c))\\
+                       (not (blue ?next-r ?c))\\
+                       (not (yellow ?next-r ?c))\\
+                )\\
+    :effect (pink ?next-r ?c)\\
+  )
+  
+  (:action pink-right\\
+    :parameters (?r ?c ?next-c)\\
+    :precondition (and (pink ?r ?c)\\
+    			       (next-c ?c ?next-c)\\
+    			       (not (red ?r ?next-c))\\
+                       (not (green ?r ?next-c))\\
+                       (not (blue ?r ?next-c))\\
+                       (not (yellow ?r ?next-c))\\
+                )\\
+    :effect (pink ?r ?next-c)\\
+  )  
+
+  (:action pink-left\\
+    :parameters (?r ?c ?prev-c)\\
+    :precondition (and (pink ?r ?c)\\
+    			       (next-c ?prev-c ?c)\\
+    			       (not (red ?r ?prev-c))\\
+                       (not (green ?r ?prev-c))\\
+                       (not (blue ?r ?prev-c))\\
+                       (not (yellow ?r ?prev-c))\\
+                )\\
+    :effect (pink ?r ?prev-c)\\
+  )\\
+
+\\
+
+
+
+\begin{Large}
+ \textbf{AllOut}\\
+\end{Large}\\
+  Dupa ce descriem predicatele trecem la implementare actiunilor. Initial descriem actiunile pentru fiecare din luminile din interiorul gridului(nu de pe margini). Dupa care tratam fiecare caz in parte pornind de la linia de sus a gridului, la liniile laterale si la fiecare colt.\\
+
+(define (domain allOut)\\
+(:predicates\\
+	(light ?r ?c )\\
+	(up ?r ?c)\\
+	(down ?r ?c)\\
+	(left ?r ?c)\\
+	(right ?r ?c)\\
+	(next-r ?r ?r)\\
+	(next-c ?c ?c)\\
+)\\
+
+  (:action light-on\\
+    :parameters (?r ?c ?prev-r ?next-r ?prev-c ?next-c )\\
+    :precondition (and (not (light ?r ?c))\\
+	    		(not (up ?r ?c))\\
+	    		(not (down ?r ?c))\\
+	    		(not (right ?r ?c))\\
+	    		(not (left ?r ?c))\\
+    			(next-r ?prev-r ?r)\\
+    			(next-r ?r ?next-r )\\
+    			(next-c ?prev-c ?c)\\
+    			(next-c ?c ?next-c ))\\
+    :effect (and (light ?r ?c) \\
+    		(when (light ?prev-r ?c) (not (light ?prev-r ?c)))\\
+    		(when (light ?next-r ?c) (not (light ?next-r ?c)))\\
+    		(when (light ?r ?prev-c) (not (light ?r ?prev-c)))\\
+    		(when (light ?r ?next-c ) (not (light ?r ?next-c )))\\
+    		(when (not (light ?prev-r ?c)) (light ?prev-r ?c))\\
+    		(when (not (light ?next-r ?c)) (light ?next-r ?c))\\
+    		(when (not (light ?r ?prev-c)) (light ?r ?prev-c))\\
+    		(when (not (light ?r ?next-c )) (light ?r ?next-c ))\\
+		)\\
+	)\\
+	
+\bibliographystyle{plain}
+\bibliography{is}
+
+1. IAlab-v1-1.pdf
+
+2.https://www.latex-project.org/
+
+3.https://www.cbc.ca/kids/games/play/color-pipes
+
+4.https://www.mathsisfun.com/games/allout.html
+
+\appendix
+
+\chapter{Your original code}
+Don't be a cheater! Cheating affects your colleagues, scholarships and a lot more.
+This section should contain only code developed by you, without any line re-used from other sources. 
+This section helps me to correctly evaluate your amount of work and results obtained. 
+
+
+\vspace{2cm}
+ 
+\begin{center}
+Intelligent Systems Group\\
+\includegraphics[width=10cm]{fig/footer}
+\end{center}
+
+
+
+\end{document}
